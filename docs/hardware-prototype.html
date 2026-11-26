@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    .tab-btn.active { border-bottom: 2px solid var(--primary); color: var(--primary); font-weight: 600; }
+    .wire { transition: opacity 0.2s; }
+    .component-box { transition: all 0.2s; cursor: pointer; }
+    .component-box:hover { filter: brightness(1.15); }
+    .component-box.selected { outline: 2px solid var(--primary); outline-offset: 2px; }
+    .pin { font-size: 9px; fill: #fff; }
+    .breadboard-row { stroke: #555; stroke-width: 0.5; }
+    .check-item input:checked + span { text-decoration: line-through; opacity: 0.5; }
+    .wire-highlight { stroke-width: 3; opacity: 1 !important; filter: drop-shadow(0 0 3px currentColor); }
+  </style>
+</head>
+<body class="bg-transparent text-[var(--foreground)] p-0 m-0">
+<div class="py-2 space-y-3">
+
+  <!-- Header -->
+  <div class="flex items-center justify-between border-b border-[var(--card-border)] pb-2">
+    <div>
+      <div class="font-semibold text-sm">⚡ Smart Electricity Monitor — Hardware Prototype</div>
+      <div class="text-xs text-[var(--muted-foreground)]">Click a component to highlight its wiring</div>
+    </div>
+    <div class="flex gap-1 text-xs">
+      <span class="px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 border border-green-500/30">Intermediate</span>
+      <span class="px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30">IoT</span>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="flex gap-4 text-xs border-b border-[var(--card-border)] mb-2">
+    <button class="tab-btn active pb-1" onclick="showTab('schematic')">🔌 Schematic</button>
+    <button class="tab-btn pb-1" onclick="showTab('bom')">🛒 BOM</button>
+    <button class="tab-btn pb-1" onclick="showTab('checklist')">✅ Build Steps</button>
+    <button class="tab-btn pb-1" onclick="showTab('pinout')">📌 Pin Map</button>
+  </div>
+
+  <!-- SCHEMATIC TAB -->
+  <div id="tab-schematic">
+    <div id="info-box" class="text-xs text-[var(--muted-foreground)] bg-[var(--card)] border border-[var(--card-border)] rounded px-3 py-2 mb-2 min-h-[36px]">
+      👆 Click any component below to see its connections
+    </div>
+    <svg id="circuit" viewBox="0 0 760 340" class="w-full rounded border border-[var(--card-border)]" style="background: #0f172a; max-height:340px;">
+      <defs>
+        <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+          <circle cx="10" cy="10" r="1" fill="#1e293b"/>
+        </pattern>
+      </defs>
+      <rect width="760" height="340" fill="url(#grid)"/>
+
+      <!-- ═══════ WIRES (drawn first, behind components) ═══════ -->
+      <!-- UART wires: PZEM TX → ESP32 RX2 (GPIO16) via level shifter -->
+      <line id="w-uart-tx" class="wire" x1="175" y1="128" x2="310" y2="128" stroke="#f59e0b" stroke-width="2" opacity="0.4"/>
+      <line id="w-uart-tx2" class="wire" x1="310" y1="128" x2="430" y2="150" stroke="#f59e0b" stroke-width="2" opacity="0.4"/>
+      <!-- UART wires: PZEM RX ← ESP32 TX2 (GPIO17) via level shifter -->
+      <line id="w-uart-rx" class="wire" x1="175" y1="142" x2="310" y2="142" stroke="#fb923c" stroke-width="2" opacity="0.4"/>
+      <line id="w-uart-rx2" class="wire" x1="310" y1="142" x2="430" y2="162" stroke="#fb923c" stroke-width="2" opacity="0.4"/>
+
+      <!-- I2C wires: OLED SDA → ESP32 GPIO21 -->
+      <line id="w-sda" class="wire" x1="600" y1="145" x2="570" y2="145" stroke="#34d399" stroke-width="2" opacity="0.4"/>
+      <line id="w-sda2" class="wire" x1="570" y1="145" x2="570" y2="80" stroke="#34d399" stroke-width="2" opacity="0.4"/>
+      <line id="w-sda3" class="wire" x1="570" y1="80" x2="530" y2="80" stroke="#34d399" stroke-width="2" opacity="0.4"/>
+      <!-- I2C wires: OLED SCL → ESP32 GPIO22 -->
+      <line id="w-scl" class="wire" x1="600" y1="158" x2="585" y2="158" stroke="#6ee7b7" stroke-width="2" opacity="0.4"/>
+      <line id="w-scl2" class="wire" x1="585" y1="158" x2="585" y2="92" stroke="#6ee7b7" stroke-width="2" opacity="0.4"/>
+      <line id="w-scl3" class="wire" x1="585" y1="92" x2="530" y2="92" stroke="#6ee7b7" stroke-width="2" opacity="0.4"/>
+
+      <!-- Power: 5V rail -->
+      <line id="w-5v-pzem" class="wire" x1="130" y1="200" x2="130" y2="295" stroke="#ef4444" stroke-width="2" opacity="0.4"/>
+      <line id="w-5v-ls"   class="wire" x1="310" y1="200" x2="310" y2="295" stroke="#ef4444" stroke-width="2" opacity="0.4"/>
+      <line id="w-5v-oled" class="wire" x1="615" y1="175" x2="615" y2="295" stroke="#ef4444" stroke-width="2" opacity="0.4"/>
+      <line id="w-5v-rail" class="wire" x1="100" y1="295" x2="680" y2="295" stroke="#ef4444" stroke-width="1.5" opacity="0.4" stroke-dasharray="4 2"/>
+
+      <!-- Power: GND rail -->
+      <line id="w-gnd-pzem" class="wire" x1="145" y1="200" x2="145" y2="310" stroke="#94a3b8" stroke-width="2" opacity="0.4"/>
+      <line id="w-gnd-ls"   class="wire" x1="325" y1="200" x2="325" y2="310" stroke="#94a3b8" stroke-width="2" opacity="0.4"/>
+      <line id="w-gnd-esp"  class="wire" x1="490" y1="210" x2="490" y2="310" stroke="#94a3b8" stroke-width="2" opacity="0.4"/>
+      <line id="w-gnd-oled" class="wire" x1="630" y1="175" x2="630" y2="310" stroke="#94a3b8" stroke-width="2" opacity="0.4"/>
+      <line id="w-gnd-rail" class="wire" x1="100" y1="310" x2="680" y2="310" stroke="#94a3b8" stroke-width="1.5" opacity="0.4" stroke-dasharray="4 2"/>
+
+      <!-- Level shifter HV→LV -->
+      <line id="w-ls-3v3" class="wire" x1="430" y1="175" x2="340" y2="175" stroke="#a78bfa" stroke-width="2" opacity="0.4"/>
+
+      <!-- ═══════ PSU block ═══════ -->
+      <g id="comp-psu" class="component-box" onclick="selectComp('psu')" transform="translate(80,275)">
+        <rect width="80" height="40" rx="4" fill="#1e3a5f" stroke="#3b82f6" stroke-width="1.5"/>
+        <text x="40" y="13" text-anchor="middle" font-size="8" fill="#93c5fd">5V PSU</text>
+        <text x="40" y="25" text-anchor="middle" font-size="10" fill="#fff">⚡ 5V/1A</text>
+        <text x="12" y="37" font-size="7" fill="#ef4444">+5V</text>
+        <text x="52" y="37" font-size="7" fill="#94a3b8">GND</text>
+      </g>
+
+      <!-- ═══════ PZEM-004T ═══════ -->
+      <g id="comp-pzem" class="component-box" onclick="selectComp('pzem')" transform="translate(90,100)">
+        <rect width="90" height="105" rx="5" fill="#1a2e1a" stroke="#22c55e" stroke-width="2"/>
+        <text x="45" y="14" text-anchor="middle" font-size="8" fill="#86efac">PZEM-004T v3</text>
+        <rect x="5" y="20" width="80" height="2" fill="#166534" rx="1"/>
+        <!-- pins -->
+        <text x="10" y="35" font-size="7.5" fill="#fca5a5">TX</text>
+        <circle cx="30" cy="32" r="3" fill="#fca5a5"/>
+        <text x="10" y="50" font-size="7.5" fill="#fdba74">RX</text>
+        <circle cx="30" cy="47" r="3" fill="#fdba74"/>
+        <text x="10" y="65" font-size="7.5" fill="#ef4444">VCC</text>
+        <circle cx="30" cy="62" r="3" fill="#ef4444"/>
+        <text x="10" y="80" font-size="7.5" fill="#94a3b8">GND</text>
+        <circle cx="30" cy="77" r="3" fill="#94a3b8"/>
+        <!-- CT label -->
+        <rect x="5" y="88" width="80" height="14" rx="3" fill="#14532d"/>
+        <text x="45" y="99" text-anchor="middle" font-size="7" fill="#86efac">CT Clamp → LIVE wire</text>
+        <!-- AC block -->
+        <text x="45" y="115" text-anchor="middle" font-size="7" fill="#fbbf24">⚡ 230V AC IN/OUT</text>
+        <!-- connector dots on right -->
+        <circle cx="90" cy="32" r="3" fill="#fca5a5"/>
+        <circle cx="90" cy="47" r="3" fill="#fdba74"/>
+      </g>
+
+      <!-- ═══════ LEVEL SHIFTER ═══════ -->
+      <g id="comp-ls" class="component-box" onclick="selectComp('ls')" transform="translate(275,108)">
+        <rect width="80" height="100" rx="5" fill="#1e1b4b" stroke="#818cf8" stroke-width="2"/>
+        <text x="40" y="13" text-anchor="middle" font-size="7.5" fill="#c7d2fe">Level Shifter</text>
+        <text x="40" y="23" text-anchor="middle" font-size="7" fill="#818cf8">5V ↔ 3.3V</text>
+        <!-- HV side -->
+        <text x="5" y="40" font-size="6.5" fill="#fca5a5">HV1</text>
+        <circle cx="22" cy="37" r="2.5" fill="#fca5a5"/>
+        <text x="5" y="55" font-size="6.5" fill="#fdba74">HV2</text>
+        <circle cx="22" cy="52" r="2.5" fill="#fdba74"/>
+        <text x="5" y="70" font-size="6.5" fill="#ef4444">HV</text>
+        <circle cx="22" cy="67" r="2.5" fill="#ef4444"/>
+        <text x="5" y="85" font-size="6.5" fill="#94a3b8">GND</text>
+        <circle cx="22" cy="82" r="2.5" fill="#94a3b8"/>
+        <!-- LV side -->
+        <text x="52" y="40" font-size="6.5" fill="#fca5a5">LV1</text>
+        <circle cx="58" cy="37" r="2.5" fill="#fca5a5"/>
+        <text x="52" y="55" font-size="6.5" fill="#fdba74">LV2</text>
+        <circle cx="58" cy="52" r="2.5" fill="#fdba74"/>
+        <text x="52" y="70" font-size="6.5" fill="#a78bfa">LV</text>
+        <circle cx="58" cy="67" r="2.5" fill="#a78bfa"/>
+        <text x="52" y="85" font-size="6.5" fill="#94a3b8">GND</text>
+        <circle cx="58" cy="82" r="2.5" fill="#94a3b8"/>
+        <!-- connector dots on edges -->
+        <circle cx="0" cy="37" r="2.5" fill="#fca5a5"/>
+        <circle cx="0" cy="52" r="2.5" fill="#fdba74"/>
+        <circle cx="80" cy="37" r="2.5" fill="#fca5a5"/>
+        <circle cx="80" cy="52" r="2.5" fill="#fdba74"/>
+        <circle cx="80" cy="67" r="2.5" fill="#a78bfa"/>
+      </g>
+
+      <!-- ═══════ ESP32 ═══════ -->
+      <g id="comp-esp32" class="component-box" onclick="selectComp('esp32')" transform="translate(430,100)">
+        <rect width="100" height="130" rx="6" fill="#1c1917" stroke="#f97316" stroke-width="2"/>
+        <text x="50" y="14" text-anchor="middle" font-size="8.5" fill="#fb923c">ESP32</text>
+        <text x="50" y="24" text-anchor="middle" font-size="6.5" fill="#78716c">240MHz / Wi-Fi</text>
+        <!-- chip body -->
+        <rect x="20" y="30" width="60" height="45" rx="3" fill="#292524" stroke="#44403c" stroke-width="1"/>
+        <text x="50" y="55" text-anchor="middle" font-size="7" fill="#d6d3d1">ESP32</text>
+        <text x="50" y="67" text-anchor="middle" font-size="6" fill="#78716c">WROOM-32</text>
+        <!-- Pin labels (left side) -->
+        <text x="5" y="84" font-size="6.5" fill="#fca5a5" text-anchor="start">GPIO16 RX2</text>
+        <circle cx="0" cy="80" r="2.5" fill="#fca5a5"/>
+        <text x="5" y="97" font-size="6.5" fill="#fdba74" text-anchor="start">GPIO17 TX2</text>
+        <circle cx="0" cy="93" r="2.5" fill="#fdba74"/>
+        <text x="5" y="110" font-size="6.5" fill="#94a3b8" text-anchor="start">GND</text>
+        <circle cx="0" cy="107" r="2.5" fill="#94a3b8"/>
+        <!-- Pin labels (right side) -->
+        <text x="95" y="84" font-size="6.5" fill="#34d399" text-anchor="end">GPIO21 SDA</text>
+        <circle cx="100" cy="80" r="2.5" fill="#34d399"/>
+        <text x="95" y="97" font-size="6.5" fill="#6ee7b7" text-anchor="end">GPIO22 SCL</text>
+        <circle cx="100" cy="93" r="2.5" fill="#6ee7b7"/>
+        <text x="95" y="110" font-size="6.5" fill="#a78bfa" text-anchor="end">3.3V</text>
+        <circle cx="100" cy="107" r="2.5" fill="#a78bfa"/>
+        <!-- WiFi antenna symbol -->
+        <text x="50" y="128" text-anchor="middle" font-size="9" fill="#f97316">📡</text>
+      </g>
+
+      <!-- ═══════ OLED ═══════ -->
+      <g id="comp-oled" class="component-box" onclick="selectComp('oled')" transform="translate(600,110)">
+        <rect width="90" height="85" rx="5" fill="#0c1a2e" stroke="#38bdf8" stroke-width="2"/>
+        <text x="45" y="13" text-anchor="middle" font-size="7.5" fill="#7dd3fc">OLED 0.96"</text>
+        <text x="45" y="23" text-anchor="middle" font-size="6.5" fill="#38bdf8">SSD1306 I²C</text>
+        <!-- screen -->
+        <rect x="8" y="28" width="74" height="38" rx="2" fill="#000" stroke="#1e3a5f" stroke-width="1"/>
+        <text x="45" y="42" text-anchor="middle" font-size="6.5" fill="#38bdf8">230.5V  3.14A</text>
+        <text x="45" y="52" text-anchor="middle" font-size="6.5" fill="#34d399">724W  0.97PF</text>
+        <text x="45" y="62" text-anchor="middle" font-size="6" fill="#fbbf24">1.2345 kWh</text>
+        <!-- pins -->
+        <text x="5" y="80" font-size="6.5" fill="#ef4444">VCC</text>
+        <circle cx="0" cy="75" r="2.5" fill="#ef4444"/>
+        <text x="22" y="80" font-size="6.5" fill="#94a3b8">GND</text>
+        <circle cx="15" cy="75" r="2.5" fill="#94a3b8"/>
+        <text x="38" y="80" font-size="6.5" fill="#34d399">SDA</text>
+        <circle cx="30" cy="75" r="2.5" fill="#34d399"/>
+        <text x="55" y="80" font-size="6.5" fill="#6ee7b7">SCL</text>
+        <circle cx="45" cy="75" r="2.5" fill="#6ee7b7"/>
+      </g>
+
+      <!-- ═══════ AC Warning block ═══════ -->
+      <g transform="translate(90,22)">
+        <rect width="230" height="68" rx="5" fill="#450a0a" stroke="#dc2626" stroke-width="1.5" stroke-dasharray="4 2"/>
+        <text x="115" y="16" text-anchor="middle" font-size="8" fill="#fca5a5">⚠️  MAINS AC ZONE (230V)</text>
+        <text x="115" y="30" text-anchor="middle" font-size="7" fill="#f87171">PZEM L-IN ──► Load ──► PZEM L-OUT</text>
+        <text x="115" y="43" text-anchor="middle" font-size="7" fill="#f87171">NEUTRAL straight through to load</text>
+        <text x="115" y="58" text-anchor="middle" font-size="7" fill="#fbbf24">CT clamp around L-OUT wire only</text>
+      </g>
+
+      <!-- Legend -->
+      <g transform="translate(430,250)">
+        <text x="0" y="12" font-size="8" fill="#94a3b8">Wire Legend:</text>
+        <line x1="0" y1="22" x2="20" y2="22" stroke="#f59e0b" stroke-width="2"/>
+        <text x="24" y="26" font-size="7" fill="#94a3b8">UART TX</text>
+        <line x1="80" y1="22" x2="100" y2="22" stroke="#fb923c" stroke-width="2"/>
+        <text x="104" y="26" font-size="7" fill="#94a3b8">UART RX</text>
+        <line x1="160" y1="22" x2="180" y2="22" stroke="#34d399" stroke-width="2"/>
+        <text x="184" y="26" font-size="7" fill="#94a3b8">I²C SDA</text>
+        <line x1="240" y1="22" x2="260" y2="22" stroke="#6ee7b7" stroke-width="2"/>
+        <text x="264" y="26" font-size="7" fill="#94a3b8">I²C SCL</text>
+        <line x1="0" y1="40" x2="20" y2="40" stroke="#ef4444" stroke-width="2"/>
+        <text x="24" y="44" font-size="7" fill="#94a3b8">+5V</text>
+        <line x1="80" y1="40" x2="100" y2="40" stroke="#94a3b8" stroke-width="2"/>
+        <text x="104" y="44" font-size="7" fill="#94a3b8">GND</text>
+        <line x1="160" y1="40" x2="180" y2="40" stroke="#a78bfa" stroke-width="2"/>
+        <text x="184" y="44" font-size="7" fill="#94a3b8">3.3V</text>
+      </g>
+
+      <!-- Power rail labels -->
+      <text x="690" y="299" font-size="7" fill="#ef4444">+5V</text>
+      <text x="690" y="314" font-size="7" fill="#94a3b8">GND</text>
+    </svg>
+  </div>
+
+  <!-- BOM TAB -->
+  <div id="tab-bom" class="hidden">
+    <div class="overflow-x-auto rounded border border-[var(--card-border)]">
+      <table class="w-full text-xs">
+        <thead>
+          <tr class="bg-[var(--card)] border-b border-[var(--card-border)]">
+            <th class="text-left px-3 py-2 text-[var(--muted-foreground)]">#</th>
+            <th class="text-left px-3 py-2">Component</th>
+            <th class="text-left px-3 py-2">Spec</th>
+            <th class="text-left px-3 py-2">Qty</th>
+            <th class="text-left px-3 py-2 text-[var(--muted-foreground)]">Est. Cost (₹)</th>
+          </tr>
+        </thead>
+        <tbody id="bom-body"></tbody>
+      </table>
+    </div>
+    <div class="mt-2 text-xs text-right text-[var(--muted-foreground)]">
+      Total estimate: <span id="bom-total" class="font-semibold text-[var(--foreground)]"></span>
+    </div>
+  </div>
+
+  <!-- CHECKLIST TAB -->
+  <div id="tab-checklist" class="hidden space-y-3">
+    <div id="progress-bar-wrap" class="flex items-center gap-2">
+      <div class="flex-1 h-2 bg-[var(--card)] rounded-full overflow-hidden border border-[var(--card-border)]">
+        <div id="progress-bar" class="h-full bg-green-500 rounded-full transition-all" style="width:0%"></div>
+      </div>
+      <span id="progress-text" class="text-xs text-[var(--muted-foreground)] whitespace-nowrap">0 / 0</span>
+    </div>
+    <div id="checklist-groups" class="space-y-3"></div>
+  </div>
+
+  <!-- PIN MAP TAB -->
+  <div id="tab-pinout" class="hidden">
+    <div class="grid grid-cols-2 gap-2">
+      <div class="rounded border border-[var(--card-border)] bg-[var(--card)] p-2">
+        <div class="text-xs font-semibold mb-2 text-orange-400">🔧 PZEM-004T → Level Shifter (HV side)</div>
+        <table class="w-full text-xs">
+          <tr class="border-b border-[var(--card-border)]"><th class="text-left py-1 text-[var(--muted-foreground)]">PZEM Pin</th><th class="text-left py-1 text-[var(--muted-foreground)]">Level Shifter</th><th class="text-left py-1 text-[var(--muted-foreground)]">Color</th></tr>
+          <tr><td class="py-1">TX (5V)</td><td>HV1</td><td><span class="text-yellow-400">■</span> Yellow</td></tr>
+          <tr><td class="py-1">RX (5V)</td><td>HV2</td><td><span class="text-orange-400">■</span> Orange</td></tr>
+          <tr><td class="py-1">VCC</td><td>HV (5V)</td><td><span class="text-red-400">■</span> Red</td></tr>
+          <tr><td class="py-1">GND</td><td>GND</td><td><span class="text-gray-400">■</span> Black</td></tr>
+        </table>
+      </div>
+      <div class="rounded border border-[var(--card-border)] bg-[var(--card)] p-2">
+        <div class="text-xs font-semibold mb-2 text-purple-400">🔧 Level Shifter (LV side) → ESP32</div>
+        <table class="w-full text-xs">
+          <tr class="border-b border-[var(--card-border)]"><th class="text-left py-1 text-[var(--muted-foreground)]">Level Shifter</th><th class="text-left py-1 text-[var(--muted-foreground)]">ESP32 Pin</th><th class="text-left py-1 text-[var(--muted-foreground)]">Color</th></tr>
+          <tr><td class="py-1">LV1 → ESP</td><td>GPIO16 (RX2)</td><td><span class="text-yellow-400">■</span> Yellow</td></tr>
+          <tr><td class="py-1">LV2 → ESP</td><td>GPIO17 (TX2)</td><td><span class="text-orange-400">■</span> Orange</td></tr>
+          <tr><td class="py-1">LV (3.3V)</td><td>3.3V</td><td><span class="text-purple-400">■</span> Purple</td></tr>
+          <tr><td class="py-1">GND</td><td>GND</td><td><span class="text-gray-400">■</span> Black</td></tr>
+        </table>
+      </div>
+      <div class="rounded border border-[var(--card-border)] bg-[var(--card)] p-2">
+        <div class="text-xs font-semibold mb-2 text-blue-400">📺 OLED → ESP32 (I²C)</div>
+        <table class="w-full text-xs">
+          <tr class="border-b border-[var(--card-border)]"><th class="text-left py-1 text-[var(--muted-foreground)]">OLED Pin</th><th class="text-left py-1 text-[var(--muted-foreground)]">ESP32 Pin</th><th class="text-left py-1 text-[var(--muted-foreground)]">Color</th></tr>
+          <tr><td class="py-1">VCC</td><td>3.3V</td><td><span class="text-red-400">■</span> Red</td></tr>
+          <tr><td class="py-1">GND</td><td>GND</td><td><span class="text-gray-400">■</span> Black</td></tr>
+          <tr><td class="py-1">SDA</td><td>GPIO21</td><td><span class="text-green-400">■</span> Green</td></tr>
+          <tr><td class="py-1">SCL</td><td>GPIO22</td><td><span class="text-emerald-400">■</span> Teal</td></tr>
+        </table>
+      </div>
+      <div class="rounded border border-[var(--card-border)] bg-[var(--card)] p-2">
+        <div class="text-xs font-semibold mb-2 text-red-400">⚡ Power Rails</div>
+        <table class="w-full text-xs">
+          <tr class="border-b border-[var(--card-border)]"><th class="text-left py-1 text-[var(--muted-foreground)]">From</th><th class="text-left py-1 text-[var(--muted-foreground)]">To</th><th class="text-left py-1 text-[var(--muted-foreground)]">Voltage</th></tr>
+          <tr><td class="py-1">5V PSU +</td><td>PZEM VCC, LS HV, ESP32 VIN</td><td class="text-red-400">5V</td></tr>
+          <tr><td class="py-1">ESP32 3.3V</td><td>OLED VCC, LS LV</td><td class="text-purple-400">3.3V</td></tr>
+          <tr><td class="py-1">5V PSU −</td><td>All GND (common)</td><td class="text-gray-400">0V</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── Tab switching ──────────────────────────────────────
+function showTab(name) {
+  ['schematic','bom','checklist','pinout'].forEach(t => {
+    document.getElementById('tab-'+t).classList.toggle('hidden', t !== name);
+  });
+  document.querySelectorAll('.tab-btn').forEach((b,i) => {
+    b.classList.toggle('active', ['schematic','bom','checklist','pinout'][i] === name);
+  });
+  if(name === 'checklist') renderChecklist();
+}
+
+// ── Component info & wire highlighting ────────────────
+const compData = {
+  psu:   { label:'5V Power Supply', color:'#3b82f6',
+           info:'Powers the entire circuit. 5V/1A minimum. Connect +5V rail to PZEM VCC, Level Shifter HV, and ESP32 VIN. Common GND for all components.',
+           wires:['w-5v-pzem','w-5v-ls','w-5v-oled','w-5v-rail','w-gnd-pzem','w-gnd-ls','w-gnd-esp','w-gnd-oled','w-gnd-rail'] },
+  pzem:  { label:'PZEM-004T v3.0', color:'#22c55e',
+           info:'Power meter IC. TX → Level Shifter HV1, RX → Level Shifter HV2. VCC=5V, GND. CT sensor clamp around LIVE wire. AC wires: L-IN from mains, L-OUT to load.',
+           wires:['w-uart-tx','w-uart-tx2','w-uart-rx','w-uart-rx2','w-5v-pzem','w-gnd-pzem'] },
+  ls:    { label:'Logic Level Shifter (5V↔3.3V)', color:'#818cf8',
+           info:'Converts PZEM 5V UART signals to 3.3V for ESP32. HV side: 5V from PZEM. LV side: 3.3V from ESP32. HV1=PZEM TX→LV1=ESP RX2. HV2=PZEM RX←LV2=ESP TX2.',
+           wires:['w-uart-tx','w-uart-tx2','w-uart-rx','w-uart-rx2','w-ls-3v3','w-5v-ls','w-gnd-ls'] },
+  esp32: { label:'ESP32 DevKit', color:'#f97316',
+           info:'Main controller. GPIO16(RX2)←PZEM TX, GPIO17(TX2)→PZEM RX (via level shifter). GPIO21(SDA) & GPIO22(SCL) → OLED. 3.3V out → OLED VCC & LS LV. Wi-Fi→MQTT.',
+           wires:['w-uart-tx2','w-uart-rx2','w-sda','w-sda2','w-sda3','w-scl','w-scl2','w-scl3','w-ls-3v3','w-gnd-esp'] },
+  oled:  { label:'OLED 0.96" SSD1306', color:'#38bdf8',
+           info:'128×64 I²C display. VCC=3.3V (from ESP32), GND, SDA→GPIO21, SCL→GPIO22. I²C address: 0x3C (or 0x3D). Rotates 3 display pages every 3 seconds.',
+           wires:['w-sda','w-sda2','w-sda3','w-scl','w-scl2','w-scl3','w-5v-oled','w-gnd-oled'] },
+};
+
+let selected = null;
+function selectComp(id) {
+  const allWires = document.querySelectorAll('.wire');
+  if (selected === id) {
+    // deselect
+    selected = null;
+    allWires.forEach(w => { w.style.opacity='0.4'; w.classList.remove('wire-highlight'); });
+    document.querySelectorAll('.component-box').forEach(b => b.classList.remove('selected'));
+    document.getElementById('info-box').innerHTML = '👆 Click any component below to see its connections';
+    return;
+  }
+  selected = id;
+  const d = compData[id];
+  // dim all wires
+  allWires.forEach(w => { w.style.opacity='0.08'; w.classList.remove('wire-highlight'); });
+  // highlight this component's wires
+  d.wires.forEach(wid => {
+    const el = document.getElementById(wid);
+    if(el){ el.style.opacity='1'; el.classList.add('wire-highlight'); }
+  });
+  // box selection
+  document.querySelectorAll('.component-box').forEach(b => b.classList.remove('selected'));
+  document.getElementById('comp-'+id).classList.add('selected');
+  // info box
+  document.getElementById('info-box').innerHTML =
+    `<span style="color:${d.color}" class="font-semibold">${d.label}</span> — ${d.info}`;
+}
+
+// ── BOM ───────────────────────────────────────────────
+const bom = [
+  ['1','ESP32 DevKit v1 (38-pin)','240MHz, Wi-Fi/BT, 4MB flash','1','350'],
+  ['2','PZEM-004T v3.0','AC 80–260V, 0–100A, TTL UART','1','550'],
+  ['3','Split-core CT Sensor','100A (usually bundled with PZEM)','1','0'],
+  ['4','OLED Display','0.96" SSD1306, I²C, 128×64','1','120'],
+  ['5','Logic Level Shifter','4-channel, 5V↔3.3V bi-directional','1','40'],
+  ['6','5V/1A Power Supply','Wall adapter or on PCB','1','100'],
+  ['7','ABS Enclosure','DIN rail or project box w/ AC inlet','1','150'],
+  ['8','Breadboard','400 or 830 tie points (prototype)','1','60'],
+  ['9','Jumper Wires','Male-to-Male, Male-to-Female set','1','50'],
+  ['10','PCB (optional)','Perf board for permanent build','1','30'],
+];
+const tbody = document.getElementById('bom-body');
+let total = 0;
+bom.forEach(r => {
+  const cost = parseInt(r[4]);
+  total += cost;
+  const tr = document.createElement('tr');
+  tr.className = 'border-b border-[var(--card-border)] hover:bg-[var(--card)] transition-colors';
+  tr.innerHTML = `<td class="px-3 py-1.5 text-[var(--muted-foreground)]">${r[0]}</td>
+    <td class="px-3 py-1.5 font-medium">${r[1]}</td>
+    <td class="px-3 py-1.5 text-[var(--muted-foreground)]">${r[2]}</td>
+    <td class="px-3 py-1.5 text-center">${r[3]}</td>
+    <td class="px-3 py-1.5 text-right">${cost > 0 ? '₹'+cost : '<span class="text-green-400">Bundled</span>'}</td>`;
+  tbody.appendChild(tr);
+});
+document.getElementById('bom-total').textContent = `₹${total} (~$${Math.round(total/83)})`;
+
+// ── Checklist ─────────────────────────────────────────
+const steps = [
+  { group:'🛒 Gather Components', items:['Buy ESP32 DevKit v1','Buy PZEM-004T v3 (with CT sensor)','Buy 0.96" I²C OLED SSD1306','Buy bi-directional level shifter module','Get 5V/1A power supply','Get breadboard & jumper wires','Get ABS enclosure with AC cutouts'] },
+  { group:'⚡ AC Wiring (Electrician recommended)', items:['De-energise circuit before wiring','Connect AC LIVE from mains to PZEM L-IN','Connect PZEM L-OUT to the load','Connect AC NEUTRAL straight to load','Clamp CT sensor around PZEM L-OUT wire only (note arrow direction)','Secure all AC connections in enclosure'] },
+  { group:'🔌 Low-Voltage Wiring', items:['Connect PZEM VCC → 5V rail','Connect PZEM GND → GND rail','Connect PZEM TX → Level Shifter HV1','Connect PZEM RX → Level Shifter HV2','Connect Level Shifter HV → 5V rail, GND → GND rail','Connect Level Shifter LV1 → ESP32 GPIO16 (RX2)','Connect Level Shifter LV2 → ESP32 GPIO17 (TX2)','Connect Level Shifter LV → ESP32 3.3V','Connect OLED VCC → ESP32 3.3V','Connect OLED GND → GND','Connect OLED SDA → ESP32 GPIO21','Connect OLED SCL → ESP32 GPIO22','Connect ESP32 VIN → 5V rail, GND → GND rail'] },
+  { group:'💻 Software & Test', items:['Install Arduino IDE + ESP32 board package','Install 5 required libraries','Edit WiFi & MQTT credentials in .ino file','Flash firmware to ESP32 (115200 baud)','Open Serial Monitor – verify PZEM readings','Install Mosquitto MQTT broker on PC','Import node_red_flow.json in Node-RED','Open dashboard at localhost:1880/ui','Test power alert by exceeding threshold','Test RESET command via MQTT topic'] },
+];
+let checkState = {};
+function renderChecklist() {
+  const container = document.getElementById('checklist-groups');
+  if(container.children.length > 0) { updateProgress(); return; }
+  steps.forEach((s,gi) => {
+    const div = document.createElement('div');
+    div.className = 'rounded border border-[var(--card-border)] bg-[var(--card)] p-2';
+    div.innerHTML = `<div class="text-xs font-semibold mb-2">${s.group}</div>`;
+    s.items.forEach((item,ii) => {
+      const key = `${gi}-${ii}`;
+      checkState[key] = checkState[key] || false;
+      const label = document.createElement('label');
+      label.className = 'check-item flex items-start gap-2 py-0.5 cursor-pointer';
+      label.innerHTML = `<input type="checkbox" class="mt-0.5 accent-[var(--primary)]" ${checkState[key]?'checked':''} onchange="checkState['${key}']=this.checked; updateProgress()">
+        <span class="text-xs">${item}</span>`;
+      div.appendChild(label);
+    });
+    container.appendChild(div);
+  });
+  updateProgress();
+}
+function updateProgress() {
+  const all = Object.keys(checkState).length;
+  const done = Object.values(checkState).filter(Boolean).length;
+  document.getElementById('progress-bar').style.width = (all ? Math.round(done/all*100) : 0)+'%';
+  document.getElementById('progress-text').textContent = `${done} / ${all}`;
+}
+</script>
+</body>
+</html>
