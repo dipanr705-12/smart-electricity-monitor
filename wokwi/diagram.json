@@ -1,0 +1,107 @@
+{
+  "version": 1,
+  "author": "Smart Electricity Monitor",
+  "editor": "wokwi",
+  "parts": [
+    {
+      "type": "wokwi-esp32-devkit-v1",
+      "id": "esp",
+      "top": 100,
+      "left": 200,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-ssd1306",
+      "id": "oled",
+      "top": 60,
+      "left": -130,
+      "attrs": { "i2cAddress": "0x3c" }
+    },
+    {
+      "type": "wokwi-led",
+      "id": "led-status",
+      "top": 310,
+      "left": -60,
+      "attrs": { "color": "green", "label": "Status" }
+    },
+    {
+      "type": "wokwi-led",
+      "id": "led-alert",
+      "top": 310,
+      "left": -20,
+      "attrs": { "color": "red", "label": "Alert" }
+    },
+    {
+      "type": "wokwi-resistor",
+      "id": "r1",
+      "top": 310,
+      "left": -130,
+      "attrs": { "value": "220" }
+    },
+    {
+      "type": "wokwi-resistor",
+      "id": "r2",
+      "top": 310,
+      "left": -90,
+      "attrs": { "value": "220" }
+    },
+    {
+      "type": "wokwi-pushbutton",
+      "id": "btn-reset",
+      "top": 390,
+      "left": -60,
+      "attrs": { "color": "blue", "label": "Reset Energy" }
+    },
+    {
+      "type": "wokwi-pushbutton",
+      "id": "btn-page",
+      "top": 390,
+      "left": 10,
+      "attrs": { "color": "green", "label": "Next Page" }
+    },
+    {
+      "type": "wokwi-slide-potentiometer",
+      "id": "pot-load",
+      "top": 460,
+      "left": -60,
+      "attrs": { "label": "Simulated Load" }
+    },
+    {
+      "type": "wokwi-text",
+      "id": "lbl-pzem",
+      "top": 20,
+      "left": -180,
+      "attrs": {
+        "text": "[ PZEM-004T Simulated via Firmware ]\n   Slide pot = vary load power"
+      }
+    }
+  ],
+  "connections": [
+    ["esp:GND.1",   "oled:GND",        "black",  []],
+    ["esp:3V3",     "oled:VCC",        "red",    []],
+    ["esp:GPIO21",  "oled:SDA",        "green",  []],
+    ["esp:GPIO22",  "oled:SCL",        "cyan",   []],
+
+    ["esp:GND.2",   "r1:1",            "black",  []],
+    ["r1:2",        "led-status:A",    "green",  []],
+    ["led-status:C","esp:GPIO2",       "lime",   []],
+
+    ["esp:GND.2",   "r2:1",            "black",  []],
+    ["r2:2",        "led-alert:A",     "red",    []],
+    ["led-alert:C", "esp:GPIO4",       "orange", []],
+
+    ["esp:GND.2",   "btn-reset:1.l",   "black",  []],
+    ["btn-reset:1.r","esp:GPIO13",     "blue",   []],
+
+    ["esp:GND.2",   "btn-page:1.l",    "black",  []],
+    ["btn-page:1.r","esp:GPIO14",      "purple", []],
+
+    ["esp:GND.2",   "pot-load:GND",    "black",  []],
+    ["esp:3V3",     "pot-load:VCC",    "red",    []],
+    ["pot-load:SIG","esp:GPIO34",      "yellow", []]
+  ],
+  "serialMonitor": {
+    "display": "terminal",
+    "newline": "lf"
+  }
+}
