@@ -244,6 +244,8 @@ You can test and modify the project directly in your browser without hardware:
 
 👉 **[Launch Smart Electricity Monitor on Wokwi](https://wokwi.com/projects/481764224060237825)**
 
+![Wokwi Simulation Preview](docs/wokwi_simulation.png)
+
 ### How to use the simulation:
 2. Copy the contents of [`wokwi/sketch.ino`](wokwi/sketch.ino) into `sketch.ino`.
 3. Copy [`wokwi/diagram.json`](wokwi/diagram.json) into `diagram.json`.
