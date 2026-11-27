@@ -5,7 +5,7 @@ An IoT-based real-time electricity monitoring system using **ESP32**, **PZEM-004
 [![Platform: ESP32](https://img.shields.io/badge/Platform-ESP32-blue.svg)](https://www.espressif.com/)
 [![Sensor: PZEM-004T](https://img.shields.io/badge/Sensor-PZEM--004T%20v3.0-orange.svg)](https://innovatorsguru.com/pzem-004t-v3/)
 [![Protocol: MQTT](https://img.shields.io/badge/Protocol-MQTT-purple.svg)](https://mqtt.org/)
-[![Simulation: Wokwi](https://img.shields.io/badge/Simulation-Wokwi-brightgreen.svg)](https://wokwi.com/)
+[![Simulation: Wokwi](https://img.shields.io/badge/Simulation-Wokwi-brightgreen.svg)](https://wokwi.com/projects/481764224060237825)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ---
@@ -238,9 +238,13 @@ The script automatically creates daily timestamped log files under `dashboard/lo
 
 ## 🌐 Wokwi Online Simulation
 
-You can test and modify the project in your browser without hardware:
+You can test and modify the project directly in your browser without hardware:
 
-1. Open [Wokwi ESP32 Simulator](https://wokwi.com/projects/new/esp32).
+[![Try on Wokwi](https://img.shields.io/badge/▶_Run_Live_Simulation-Wokwi-25c2a0?style=for-the-badge&logo=wokwi)](https://wokwi.com/projects/481764224060237825)
+
+👉 **[Launch Smart Electricity Monitor on Wokwi](https://wokwi.com/projects/481764224060237825)**
+
+### How to use the simulation:
 2. Copy the contents of [`wokwi/sketch.ino`](wokwi/sketch.ino) into `sketch.ino`.
 3. Copy [`wokwi/diagram.json`](wokwi/diagram.json) into `diagram.json`.
 4. In the Library Manager tab, add the libraries from [`wokwi/libraries.txt`](wokwi/libraries.txt).
